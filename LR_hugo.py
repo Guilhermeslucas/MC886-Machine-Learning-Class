@@ -128,7 +128,7 @@ X_test = X_test[:, pval > 0.7]
 
 # Applying PCA
 from sklearn.decomposition import PCA
-pca = PCA(n_components = 1)
+pca = PCA(n_components = 1, random_state = 42)
 X_train = pca.fit_transform(X_train)
 X_test = pca.transform(X_test)
 """
@@ -154,7 +154,8 @@ SGDReg, y_pred_SGD, r2_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test
 
 # Random Forest
 from sklearn.ensemble import RandomForestRegressor
-RF = RandomForestRegressor(n_estimators = 100, n_jobs = -1, random_state = 42, verbose=2, min_samples_leaf = 5, max_features = 0.2)
+regressor = RandomForestRegressor(n_estimators = 150, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 5, max_features = 0.2)
+#RF, y_pred_RF, r2_RF = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Applying k-Fold Cross Validation
 from sklearn.model_selection import cross_val_predict
@@ -169,24 +170,41 @@ y1 = np.array(y_pred_train)
 y1.sort()
 y1 = y1.astype(int)
 X_train.sort()
+
+
+
+# Applying Grid Search to find the best model and the best parameters
+from sklearn.model_selection import GridSearchCV
+parameters = [{'n_estimators':[150], 'min_samples_leaf': [5, 15, 30, 50], 'max_features': [0.1, 0.15, 0.2]}]
+grid_search_RF = GridSearchCV(estimator = regressor,
+                           param_grid = parameters,
+                           scoring = 'r2',
+                           cv = 5,
+                           n_jobs = 3,
+                           verbose=2)
+grid_search_RF = grid_search_RF.fit(X_train, y_train)
+best_accuracy = grid_search_RF.best_score_
+best_parameters = grid_search_RF.best_params_
+
+
+
 """
 y_pred_train_LR = LR.predict(X_train).astype(int)
-y_pred_train_Rid = LR.predict(X_train).astype(int)
-y_pred_train_SGD = LR.predict(X_train).astype(int)
+y_pred_train_Rid = Rid.predict(X_train).astype(int)
+y_pred_train_SGD = SGDReg.predict(X_train).astype(int)
+y_pred_train_Las = Las.predict(X_train).astype(int)
+y_pred_train_RF = RF.predict(X_train).astype(int)
+
 """
-y_pred_train_LR.sort()
-y_pred_train_Rid.sort()
-y_pred_train_SGD.sort()
 """
 #Plotting the model
 # Applying PCA
 from sklearn.decomposition import PCA
-pca = PCA(n_components = 1)
+pca = PCA(n_components = 1, random_state = 42)
 X_train = pca.fit_transform(X_train)
 X_test = pca.transform(X_test)
-predic.sort()
 plt.scatter(X_train, y_train, color='red')
-plt.plot(X_train, predic, color='blue')
+plt.plot(X_train, y_pred_train_RF, color='blue')
 plt.show()
 
 
