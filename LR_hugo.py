@@ -99,6 +99,15 @@ def lin_reg(regressor, X_train, y_train, X_test, y_test):
     return regressor, y_pred, r2
 
 def reduce_dataset(df):
+    """
+    Function created in order to make a smaller dataset, trying to avoid overfitting
+    Parameters:
+    -----------
+        df: pandas dataframe you want to filter
+    Returns:
+    -------
+        new_data: smaller dataset
+    """
     new_data = pd.DataFrame()
     for year in range(1924,2011):
         rows = train.loc[train[0] == year].head(n=20)
