@@ -98,9 +98,17 @@ def lin_reg(regressor, X_train, y_train, X_test, y_test):
     plt.show()
     return regressor, y_pred, r2
 
+def reduce_dataset(df):
+    new_data = pd.DataFrame()
+    for year in range(1924,2011):
+        rows = train.loc[train[0] == year].head(n=20)
+        new_data = new_data.append(rows, ignore_index=True)
+    return new_data
+
 train = pd.read_csv('year-prediction-msd-train.txt', header=None)
 test = pd.read_csv('year-prediction-msd-test.txt', header=None)
 
+print(reduce_dataset(train))
 # Sorting by the year
 train = train.sort([0], ascending=True)
 test = test.sort([0], ascending=True)
@@ -215,3 +223,4 @@ plt.show()
 import statsmodels.formula.api as sm
 regressor_OLS = sm.OLS(endog = y_train, exog = X_train).fit()
 regressor_OLS.summary()
+"""
