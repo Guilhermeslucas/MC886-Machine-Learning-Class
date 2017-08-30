@@ -133,7 +133,7 @@ plt.bar(list(cont.keys()), list(cont.values()))
 plt.show()
 
 # Reducing the dataset
-train = reduce_dataset(train)
+#train = reduce_dataset(train)
 
 # Getting the independent variable and the dependent variable
 X_train = train.drop([0], axis = 1)
@@ -147,9 +147,7 @@ from sklearn.preprocessing import StandardScaler
 sc_X = StandardScaler()
 X_train = sc_X.fit_transform(X_train)
 X_test = sc_X.transform(X_test)
-
-
-
+"""
 # Getting F and P Values
 from sklearn.feature_selection import f_regression
 F, pval = f_regression(X_train, y_train)
@@ -157,7 +155,7 @@ F, pval = f_regression(X_train, y_train)
 # Excluding features with low P value
 X_train = X_train[:, pval > 0.05]
 X_test = X_test[:, pval > 0.05]
-
+"""
 """
 # Applying PCA
 from sklearn.decomposition import PCA
@@ -165,42 +163,37 @@ pca = PCA(n_components = 1, random_state = 42)
 X_train = pca.fit_transform(X_train)
 X_test = pca.transform(X_test)
 """
+
+# Stochastic Gradient Descent Regressor
+from sklearn.linear_model import SGDRegressor
+regressor = SGDRegressor(learning_rate = 'constant', eta0 = 0.00001, penalty = 'l1', warm_start = True, random_state = 42)
+#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
+SGDReg, y_pred_SGD, r2_SGD, mse_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
+
 # Linear Regressor 
 from sklearn.linear_model import LinearRegression
 regressor = LinearRegression()
-selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-LR, y_pred_LR, r2_LR, mse_LR = lin_reg(selector, X_train, y_train, X_test, y_test)
+#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
+LR, y_pred_LR, r2_LR, mse_LR = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Ridge Regression
 from sklearn.linear_model import Ridge
-regressor = Ridge(alpha = 1000)
+regressor = Ridge(alpha = 1000, solver = 'sparse_cg', random_state = 42)
 selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 Rid, y_pred_Rid, r2_Rid, mse_Rid = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # LASSO
 from sklearn.linear_model import Lasso
 regressor = Lasso(alpha = 0.1, random_state = 42)
-selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
+#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 Las, y_pred_Las, r2_Las, mse_Las = lin_reg(regressor, X_train, y_train, X_test, y_test)
-
+"""
 # Elastic Net
 from sklearn.linear_model import ElasticNetCV
 regressor = ElasticNetCV(cv=5, random_state = 42)
 selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 enet, y_pred_enet, r2_enet, mse_enet = lin_reg(regressor, X_train, y_train, X_test, y_test)
-
-# Stochastic Gradient Descent Regressor
-from sklearn.linear_model import SGDRegressor
-regressor = SGDRegressor(learning_rate = 'constant', eta0 = 0.0001, penalty = None, warm_start = True)
-selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-SGDReg, y_pred_SGD, r2_SGD, mse_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
-
-# Random Forest
-from sklearn.ensemble import RandomForestRegressor
-regressor = RandomForestRegressor(n_estimators = 500, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 20, max_features = 0.2)
-#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-RF, y_pred_RF, r2_RF, mse_RF = lin_reg(regressor, X_train, y_train, X_test, y_test)
-
+"""
 # Gradient Boosting Regressor
 from sklearn.ensemble import GradientBoostingRegressor
 regressor = GradientBoostingRegressor(n_estimators = 500, learning_rate = 0.01, criterion ='mse', random_state = 42, verbose = 2)
@@ -218,10 +211,18 @@ plt.xlabel('Gradient Iterations')
 plt.ylabel('Mean Squared Error')
 plt.show()
 
+# Random Forest
+from sklearn.ensemble import RandomForestRegressor
+regressor = RandomForestRegressor(n_estimators = 500, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 20, max_features = 0.2)
+#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
+RF, y_pred_RF, r2_RF, mse_RF = lin_reg(regressor, X_train, y_train, X_test, y_test)
+
 # Applying k-Fold Cross Validation
-from sklearn.model_selection import cross_val_predict
-predic = cross_val_predict(estimator = RF, X = X_train, y = y_train, cv = 5, n_jobs = -1)
-predic = predic.astype(int)
+from sklearn.model_selection import cross_val_score
+scores = cross_val_score(estimator = SGDReg, X = X_train, y = y_train, cv = 10, n_jobs = -1, scoring='neg_mean_squared_error')
+mean_score = scores.mean()
+std_score = scores.std()
+#predic = predic.astype(int)
 
 # Applying Grid Search to find the best model and the best parameters
 from sklearn.model_selection import GridSearchCV
