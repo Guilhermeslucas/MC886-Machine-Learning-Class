@@ -197,15 +197,26 @@ SGDReg, y_pred_SGD, r2_SGD, mse_SGD = lin_reg(regressor, X_train, y_train, X_tes
 
 # Random Forest
 from sklearn.ensemble import RandomForestRegressor
-regressor = RandomForestRegressor(n_estimators = 150, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 20, max_features = 0.2)
-selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
+regressor = RandomForestRegressor(n_estimators = 500, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 20, max_features = 0.2)
+#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 RF, y_pred_RF, r2_RF, mse_RF = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Gradient Boosting Regressor
 from sklearn.ensemble import GradientBoostingRegressor
 regressor = GradientBoostingRegressor(n_estimators = 500, learning_rate = 0.01, criterion ='mse', random_state = 42, verbose = 2)
-selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
+#selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 grad_boost, y_pred_gb, r2_gb, mse_gb = lin_reg(regressor, X_train, y_train, X_test, y_test)
+test_score = np.zeros(500, dtype=np.float64)
+for i, y_pred in enumerate(grad_boost.staged_predict(X_test)):
+    test_score[i] = grad_boost.loss_(y_test, y_pred)
+
+plt.title('Training Error')
+plt.plot(np.arange(1,501), grad_boost.train_score_, 'b-', label='Training Set Error')
+plt.plot(np.arange(1,501), test_score, 'r-', label='Test Set Error')
+plt.legend(loc='upper right')
+plt.xlabel('Gradient Iterations')
+plt.ylabel('Mean Squared Error')
+plt.show()
 
 # Applying k-Fold Cross Validation
 from sklearn.model_selection import cross_val_predict
@@ -240,7 +251,7 @@ pca = PCA(n_components = 1, random_state = 42)
 X_train = pca.fit_transform(X_train)
 X_test = pca.transform(X_test)
 plt.scatter(X_train, y_train, color='red')
-plt.plot(X_train, y_pred_train_LR, color='blue')
+plt.plot(X_train, y_pred_train_RF, color='blue')
 plt.show()
 
 """
