@@ -26,14 +26,22 @@ def lin_reg(regressor, X_train, y_train, X_test, y_test):
         mse_test: Mean Squared Error for test set
     """    
 
-    y_pred_train = cross_val_predict(estimator = regressor, X = X_train, y = y_train, cv = 10, n_jobs = 3)
+    y_pred_train = cross_val_predict(estimator = regressor, X = X_train, y = y_train, cv = 10, n_jobs = 3).astype(int)
     r2_train = r2_score(y_train, y_pred_train)
     mse_train = mean_squared_error(y_train, y_pred_train)
     regressor.fit(X_train, y_train)
+    #r2_train = regressor.score(X_train, y_train)
     y_pred_test = regressor.predict(X_test).astype(int)
     r2_test = r2_score(y_test, y_pred_test)
+    #r2_test = regressor.score(X_test, y_test)
     mse_test = mean_squared_error(y_test, y_pred_test)
-    return regressor, y_pred_train, y_pred_test, r2_train, mse_train, r2_test, mse_test
+    metrics = {'r2_train':r2_train,
+               'r2_test':r2_train,
+               'mse_train':mse_train,
+               'mse_test': mse_test}
+    preds = {'y_pred_train': y_pred_train,
+             'y_pred_test': y_pred_test}
+    return regressor, preds, metrics
 
 def reduce_dataset(df):
     """
@@ -101,31 +109,32 @@ X_test = pca.transform(X_test)
 from sklearn.linear_model import SGDRegressor
 regressor = SGDRegressor(learning_rate = 'constant', eta0 = 0.00001, penalty = 'l1', warm_start = True, random_state = 42)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-SGDReg, y_pred_train_SGD, y_pred_test_SGD, r2_train_SGD, mse_train_SGD, r2_test_SGD, mse_test_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
+#SGDReg, y_pred_train_SGD, y_pred_test_SGD, r2_train_SGD, mse_train_SGD, r2_test_SGD, mse_test_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
+SGDReg, preds_SGD, metrics_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Linear Regressor 
 from sklearn.linear_model import LinearRegression
 regressor = LinearRegression()
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-LR, y_pred_train_LR, y_pred_test_LR, r2_train_LR, mse_train_LR, r2_test_LR, mse_test_LR = lin_reg(regressor, X_train, y_train, X_test, y_test)
+LR, preds_LR, metrics_LR = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Ridge Regression
 from sklearn.linear_model import Ridge
 regressor = Ridge(alpha = 1000, solver = 'sparse_cg', random_state = 42)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-Rid, y_pred_train_Rid, y_pred_test_Rid, r2_train_Rid, mse_train_Rid, r2_test_Rid, mse_test_Rid = lin_reg(regressor, X_train, y_train, X_test, y_test)
+Rid, preds_Rid, metrics_Rid = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # LASSO
 from sklearn.linear_model import Lasso
 regressor = Lasso(alpha = 0.1, random_state = 42)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-Las, y_pred_train_Las, y_pred_test_Las, r2_train_Las, mse_train_Las, r2_test_Las, mse_test_Las = lin_reg(regressor, X_train, y_train, X_test, y_test)
+Las, preds_Las, metrics_Las = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Gradient Boosting Regressor
 from sklearn.ensemble import GradientBoostingRegressor
 regressor = GradientBoostingRegressor(n_estimators = 500, learning_rate = 0.01, criterion ='mse', random_state = 42, verbose = 2)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-GB, y_pred_train_GB, y_pred_test_GB, r2_train_GB, mse_train_GB, r2_test_GB, mse_test_GB = lin_reg(regressor, X_train, y_train, X_test, y_test)
+GB, preds_GB, metrics_GB = lin_reg(regressor, X_train, y_train, X_test, y_test)
 test_score = np.zeros(500, dtype=np.float64)
 for i, y_pred in enumerate(GB.staged_predict(X_test)):
     test_score[i] = GB.loss_(y_test, y_pred)
@@ -142,7 +151,7 @@ plt.show()
 from sklearn.ensemble import RandomForestRegressor
 regressor = RandomForestRegressor(n_estimators = 500, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 20, max_features = 0.2)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-RF, y_pred_train_RF, y_pred_test_RF, r2_train_RF, mse_train_RF, r2_test_RF, mse_test_RF = lin_reg(regressor, X_train, y_train, X_test, y_test)
+RF, preds_RF, metrics_RF = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
 # Applying Grid Search to find the best model and the best parameters
 from sklearn.model_selection import GridSearchCV
@@ -156,9 +165,6 @@ grid_search_RF = GridSearchCV(estimator = regressor,
 grid_search_RF = grid_search_RF.fit(X_train, y_train)
 best_accuracy = grid_search_RF.best_score_
 best_parameters = grid_search_RF.best_params_
-
-# Predicting on training set -> creating the model for plot
-
 
 #Plotting the model
 # Applying PCA
