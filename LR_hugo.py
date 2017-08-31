@@ -36,7 +36,7 @@ def lin_reg(regressor, X_train, y_train, X_test, y_test):
     #r2_test = regressor.score(X_test, y_test)
     mse_test = mean_squared_error(y_test, y_pred_test)
     metrics = {'r2_train':r2_train,
-               'r2_test':r2_train,
+               'r2_test':r2_test,
                'mse_train':mse_train,
                'mse_test': mse_test}
     preds = {'y_pred_train': y_pred_train,
