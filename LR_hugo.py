@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import RFE
 from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_predict, cross_val_score, validation_curve
 
 def lin_reg(regressor, X_train, y_train, X_test, y_test):
     """
@@ -26,12 +26,12 @@ def lin_reg(regressor, X_train, y_train, X_test, y_test):
         mse_test: Mean Squared Error for test set
     """    
 
-    y_pred_train = cross_val_predict(estimator = regressor, X = X_train, y = y_train, cv = 10, n_jobs = 3).astype(int)
-    r2_train = r2_score(y_train, y_pred_train)
-    mse_train = mean_squared_error(y_train, y_pred_train)
+    y_pred_train = cross_val_predict(estimator = regressor, X = X_train, y = y_train, cv = 10, n_jobs = 3)
+    r2_train = r2_score(y_train, y_pred_train) # using r2 metrics
+    mse_train = mean_squared_error(y_train, y_pred_train) # using mse metrics
     regressor.fit(X_train, y_train)
     #r2_train = regressor.score(X_train, y_train)
-    y_pred_test = regressor.predict(X_test).astype(int)
+    y_pred_test = regressor.predict(X_test)
     r2_test = r2_score(y_test, y_pred_test)
     #r2_test = regressor.score(X_test, y_test)
     mse_test = mean_squared_error(y_test, y_pred_test)
@@ -63,7 +63,7 @@ train = pd.read_csv('year-prediction-msd-train.txt', header=None)
 test = pd.read_csv('year-prediction-msd-test.txt', header=None)
 
 # Sorting by the year
-train = train.sort([0], ascending=True)
+train = train.sort([0], ascending=True) # sorting the data, doesn't really help anything
 test = test.sort([0], ascending=True)
 
 #Plotting the histogram of values per year
@@ -89,6 +89,8 @@ X_train = sc_X.fit_transform(X_train)
 X_test = sc_X.transform(X_test)
 
 """
+Trying to get the most correlated features with p values
+
 # Getting F and P Values
 from sklearn.feature_selection import f_regression
 F, pval = f_regression(X_train, y_train)
@@ -97,44 +99,37 @@ F, pval = f_regression(X_train, y_train)
 X_train = X_train[:, pval > 0.05]
 X_test = X_test[:, pval > 0.05]
 """
-"""
-# Applying PCA
-from sklearn.decomposition import PCA
-pca = PCA(n_components = 1, random_state = 42)
-X_train = pca.fit_transform(X_train)
-X_test = pca.transform(X_test)
-"""
-
-# Stochastic Gradient Descent Regressor
+# Creating our models
+# Model 1 - Stochastic Gradient Descent Regressor
 from sklearn.linear_model import SGDRegressor
 regressor = SGDRegressor(learning_rate = 'constant', eta0 = 0.00001, penalty = 'l1', warm_start = True, random_state = 42)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
-#SGDReg, y_pred_train_SGD, y_pred_test_SGD, r2_train_SGD, mse_train_SGD, r2_test_SGD, mse_test_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
 SGDReg, preds_SGD, metrics_SGD = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
-# Linear Regressor 
+# Model 2 - Linear Regressor 
 from sklearn.linear_model import LinearRegression
 regressor = LinearRegression()
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 LR, preds_LR, metrics_LR = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
-# Ridge Regression
+# Model 3 - Ridge Regression
 from sklearn.linear_model import Ridge
 regressor = Ridge(alpha = 1000, solver = 'sparse_cg', random_state = 42)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 Rid, preds_Rid, metrics_Rid = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
-# LASSO
+# Model 4 - LASSO
 from sklearn.linear_model import Lasso
 regressor = Lasso(alpha = 0.1, random_state = 42)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 Las, preds_Las, metrics_Las = lin_reg(regressor, X_train, y_train, X_test, y_test)
 
-# Gradient Boosting Regressor
+# Model 5 - Gradient Boosting Regressor
 from sklearn.ensemble import GradientBoostingRegressor
 regressor = GradientBoostingRegressor(n_estimators = 500, learning_rate = 0.01, criterion ='mse', random_state = 42, verbose = 2)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
 GB, preds_GB, metrics_GB = lin_reg(regressor, X_train, y_train, X_test, y_test)
+# Plotting the train and test errors along with the number of iterations
 test_score = np.zeros(500, dtype=np.float64)
 for i, y_pred in enumerate(GB.staged_predict(X_test)):
     test_score[i] = GB.loss_(y_test, y_pred)
@@ -147,7 +142,7 @@ plt.xlabel('Gradient Iterations')
 plt.ylabel('Mean Squared Error')
 plt.show()
 
-# Random Forest
+# Model 6 - Random Forest
 from sklearn.ensemble import RandomForestRegressor
 regressor = RandomForestRegressor(n_estimators = 500, n_jobs = 3, random_state = 42, verbose=2, min_samples_leaf = 20, max_features = 0.2)
 #selector = RFE(estimator = regressor,  n_features_to_select = 20, step=1, verbose=2)
@@ -166,13 +161,47 @@ grid_search_RF = grid_search_RF.fit(X_train, y_train)
 best_accuracy = grid_search_RF.best_score_
 best_parameters = grid_search_RF.best_params_
 
+# Getting scores with cross validation
+from sklearn.model_selection import cross_val_score
+scores = cross_val_score(estimator = LR, X = X_train, y = y_train, cv = 3, n_jobs = 3, scoring='neg_mean_squared_error')
+scores.mean()
+
 #Plotting the model
-# Applying PCA
+# Applying PCA - reducing to 1 principal component
 from sklearn.decomposition import PCA
 pca = PCA(n_components = 1, random_state = 42)
 X_train = pca.fit_transform(X_train)
 X_test = pca.transform(X_test)
 plt.scatter(X_train, y_train, color='red')
-plt.plot(X_train, y_pred_train_RF, color='blue')
+plt.plot(X_train, preds_RF['y_pred_train'], color='blue')
 plt.show()
 
+
+
+
+param_range = np.logspace(-6, -1, 5)
+train_scores, test_scores = validation_curve(
+    SGDReg, X_train, y_train, param_name="alpha", param_range=param_range,
+    cv=10, scoring="neg_mean_squared_error", n_jobs=1)
+train_scores_mean = np.mean(train_scores, axis=1)
+train_scores_std = np.std(train_scores, axis=1)
+test_scores_mean = np.mean(test_scores, axis=1)
+test_scores_std = np.std(test_scores, axis=1)
+
+plt.title("Validation Curve with SGD")
+plt.xlabel("alpha")
+plt.ylabel("Score")
+#plt.ylim(0.0, 1.1)
+lw = 2
+plt.semilogx(param_range, train_scores_mean, label="Training score",
+             color="darkorange", lw=lw)
+#plt.fill_between(param_range, train_scores_mean - train_scores_std,
+            #     train_scores_mean + train_scores_std, alpha=0.2,
+             #    color="darkorange", lw=lw)
+plt.semilogx(param_range, test_scores_mean, label="Cross-validation score",
+             color="navy", lw=lw)
+#plt.fill_between(param_range, test_scores_mean - test_scores_std,
+          #       test_scores_mean + test_scores_std, alpha=0.2,
+             #    color="navy", lw=lw)
+plt.legend(loc="best")
+plt.show()
